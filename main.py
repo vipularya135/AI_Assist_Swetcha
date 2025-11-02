@@ -31,6 +31,14 @@ import speech_recognition as sr
 import tempfile, base64
 import requests, time
 
+# Detect PyAudio availability (PyAudio is often not installable on cloud platforms)
+try:
+    import pyaudio  # type: ignore
+    HAVE_PYAUDIO = True
+except Exception:
+    pyaudio = None  # type: ignore
+    HAVE_PYAUDIO = False
+
 # ——— Configuration ———
 GENAI_API_KEY = "AIzaSyA49i1bc4iTqRYG3YcOZv617As0FiAqPUA"
 DID_API_KEY = "a3ZpcGFyeWExQGdtYWlsLmNvbQ:CcPcUZ9Lylz6kWnA0QJMj"
@@ -117,6 +125,12 @@ class RAGSingleLanguage:
 
 # ——— Voice Input ———
 def recognize_voice(lang_code='en-IN') -> str:
+    if not HAVE_PYAUDIO:
+        st.error("PyAudio is not installed or not available in this environment.\n"
+                 "If you're running locally on Windows, install it with: `pip install pipwin` then `pipwin install pyaudio`.\n"
+                 "If you're deploying remotely (Streamlit Cloud), use a browser-based recorder instead—server-side microphone capture won't work on remote hosts.")
+        return ""
+
     r = sr.Recognizer()
     with sr.Microphone() as src:
         st.info("🎤 Adjusting for ambient noise…")

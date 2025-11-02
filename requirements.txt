@@ -9,5 +9,4 @@ gTTS
 SpeechRecognition
 requests
 tf-keras
-pipwin
-PyAudio
+# Note: PyAudio and pipwin are Windows-only. Install PyAudio locally with pipwin if needed.
