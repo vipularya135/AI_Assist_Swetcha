@@ -32,7 +32,7 @@ import tempfile, base64
 import requests, time
 
 # ——— Configuration ———
-GENAI_API_KEY = "AIzaSyA5xtoT9HAjH-wsa7OHFXlBjRRcXwCFBMg"
+GENAI_API_KEY = "AIzaSyA49i1bc4iTqRYG3YcOZv617As0FiAqPUA"
 DID_API_KEY = "a3ZpcGFyeWExQGdtYWlsLmNvbQ:CcPcUZ9Lylz6kWnA0QJMj"
 AVATAR_IMAGE_URL = "https://raw.githubusercontent.com/de-id/live-streaming-demo/main/alex_v2_idle_image.png"
 
@@ -40,7 +40,7 @@ AVATAR_IMAGE_URL = "https://raw.githubusercontent.com/de-id/live-streaming-demo/
 class RAGSingleLanguage:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model    = genai.GenerativeModel('gemini-1.5-flash')
+        self.model    = genai.GenerativeModel('gemini-2.0-flash')
         self.embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
         self.chunks: List[str] = []
         self.embeddings: np.ndarray = np.array([])

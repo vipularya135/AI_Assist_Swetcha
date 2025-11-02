@@ -8,3 +8,6 @@ google-generativeai
 gTTS
 SpeechRecognition
 requests
+tf-keras
+pipwin
+PyAudio
