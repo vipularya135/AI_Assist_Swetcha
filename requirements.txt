@@ -10,4 +10,3 @@ SpeechRecognition
 requests
 tf-keras
 # Note: PyAudio and pipwin are Windows-only. Install PyAudio locally with pipwin if needed.
-streamlit-audio-recorder
