@@ -29,6 +29,7 @@ import google.generativeai as genai
 from gtts import gTTS
 import speech_recognition as sr
 import tempfile, base64
+from io import BytesIO
 import requests, time
 
 # Detect PyAudio availability (PyAudio is often not installable on cloud platforms)
@@ -38,6 +39,14 @@ try:
 except Exception:
     pyaudio = None  # type: ignore
     HAVE_PYAUDIO = False
+
+# Try to import a browser-side recorder component (works on deployed Streamlit apps)
+try:
+    # pip package: streamlit-audio-recorder -> module streamlit_audio_recorder
+    from streamlit_audio_recorder import audio_recorder  # type: ignore
+    HAVE_BROWSER_RECORDER = True
+except Exception:
+    HAVE_BROWSER_RECORDER = False
 
 # ——— Configuration ———
 GENAI_API_KEY = "AIzaSyA49i1bc4iTqRYG3YcOZv617As0FiAqPUA"
@@ -227,14 +236,56 @@ def main():
         st.markdown("**Type your question**")
         typed = st.text_input(f"Ask in {sel}:")
         st.markdown("**Or use voice input**")
-        if st.button("🎙️ Speak Your Question"):
-            code = st.session_state.lang + "-IN" if st.session_state.lang == "en" else st.session_state.lang
-            recd = recognize_voice(code)
-            if recd:
-                st.session_state.voice_q = recd
-                st.success(f"🎤 You said: {recd}")
+
+        code = st.session_state.lang + "-IN" if st.session_state.lang == "en" else st.session_state.lang
+
+        # Preferred: browser-side recorder for deployed apps (doesn't require PyAudio)
+        if HAVE_BROWSER_RECORDER:
+            st.info("Use the recorder below to capture audio from your browser (works on Streamlit Cloud).")
+            wav_bytes = audio_recorder()
+            if wav_bytes:
+                # wav_bytes is expected to be raw WAV bytes
+                r = sr.Recognizer()
+                try:
+                    with sr.AudioFile(BytesIO(wav_bytes)) as source:
+                        audio = r.record(source)
+                    recd = r.recognize_google(audio, language=code)
+                    st.session_state.voice_q = recd
+                    st.success(f"🎤 You said: {recd}")
+                except sr.UnknownValueError:
+                    st.error("❗ Could not understand audio.")
+                except sr.RequestError as e:
+                    st.error(f"🚫 Speech API error: {e}")
+                except Exception as e:
+                    st.error(f"Error processing recorded audio: {e}")
+        else:
+            # Fallback: local microphone (requires PyAudio) or file upload
+            if HAVE_PYAUDIO:
+                if st.button("🎙️ Speak Your Question"):
+                    recd = recognize_voice(code)
+                    if recd:
+                        st.session_state.voice_q = recd
+                        st.success(f"🎤 You said: {recd}")
+                    else:
+                        st.warning("No speech recognized.")
             else:
-                st.warning("No speech recognized.")
+                st.info("Browser recorder not installed. You can either: (A) install `streamlit-audio-recorder` locally, or (B) upload a recorded WAV/MP3 file below.")
+                uploaded_audio = st.file_uploader("Upload recorded audio (WAV/MP3)", type=["wav", "mp3", "m4a", "ogg"])
+                if uploaded_audio is not None:
+                    r = sr.Recognizer()
+                    try:
+                        # Convert uploaded file to a format speech_recognition can read using BytesIO
+                        with sr.AudioFile(uploaded_audio) as source:
+                            audio = r.record(source)
+                        recd = r.recognize_google(audio, language=code)
+                        st.session_state.voice_q = recd
+                        st.success(f"🎤 You said: {recd}")
+                    except sr.UnknownValueError:
+                        st.error("❗ Could not understand audio.")
+                    except sr.RequestError as e:
+                        st.error(f"🚫 Speech API error: {e}")
+                    except Exception as e:
+                        st.error(f"Error processing uploaded audio: {e}")
 
         question = typed or st.session_state.voice_q
         if st.button("Get Answer") and question:
